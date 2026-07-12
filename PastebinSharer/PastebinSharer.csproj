@@ -14,7 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
     <Folder Include="BackgroundJobs\" />
     <Folder Include="Data\" />
     <Folder Include="Models\DTOs\" />
