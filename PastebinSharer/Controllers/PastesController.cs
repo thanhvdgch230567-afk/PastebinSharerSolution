@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PastebinSharer.Models.DTOs;
 using PastebinSharer.Services;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PastebinSharer.Controllers
 {
@@ -64,4 +65,4 @@ namespace PastebinSharer.Controllers
             return Ok(new { message = $"Đã xóa thành công Paste có mã '{code}'" });
         }
     }
-}
+}   
