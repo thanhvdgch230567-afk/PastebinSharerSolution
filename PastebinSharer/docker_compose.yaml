@@ -1,0 +1,60 @@
+﻿services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: pastebin_postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: pastebindb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: pastebin_postgres_auth
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+      POSTGRES_DB: auth_db
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pastebin-api:
+    container_name: pastebin_web_api
+    build:
+      context: .
+      dockerfile: PastebinSharer/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=pastebindb;Username=postgres;Password=123
+      - ConnectionStrings__AuthConnection=Host=postgres-auth;Port=5432;Database=auth_db;Username=auth_user;Password=auth_pass
+      - Jwt__Secret=d9ed6005f5a5dff148df88b74482c0710cd6f519e1a7e3af28d8a35d36f781b2
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      postgres-auth:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  postgres_auth_data:
