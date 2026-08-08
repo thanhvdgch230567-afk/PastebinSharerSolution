@@ -27,7 +27,7 @@ namespace PastebinSharer.Services
             while (await _context.Pastes.AnyAsync(p => p.Code == code));
 
             // Tính thời gian hết hạn (ExpiresAt)
-            DateTime? expiresAt = dto.Expiration.ToLower() switch
+            DateTime? expiresAt = dto.Expiration?.ToLower() switch
             {
                 "1h" => DateTime.UtcNow.AddHours(1),
                 "1d" => DateTime.UtcNow.AddDays(1),
@@ -52,7 +52,7 @@ namespace PastebinSharer.Services
             return MapToResponseDto(paste);
         }
 
-        // 2. Logic Lấy thông tin Paste theo Code
+        // 2. Logic Lấy thông tin Paste theo Code (Tự động tăng ViewCount)
         public async Task<PasteResponseDto?> GetPasteByCodeAsync(string code)
         {
             var paste = await _context.Pastes.FirstOrDefaultAsync(p => p.Code == code);
@@ -65,25 +65,37 @@ namespace PastebinSharer.Services
                 return null; // Đã hết hạn
             }
 
+            // Tăng lượt xem
             paste.ViewCount++;
             await _context.SaveChangesAsync();
 
             return MapToResponseDto(paste);
         }
 
-        // 3. Logic Lấy danh sách các Paste công khai (MỞ RỘNG 1)
+        // 3. Logic Lấy danh sách các Paste công khai (Đã SỬA LỖI LINQ EF CORE)
         public async Task<IEnumerable<PasteResponseDto>> GetPublicPastesAsync()
         {
             var now = DateTime.UtcNow;
 
+            // Dùng Select chiếu trực tiếp sang DTO để EF Core dịch chuẩn sang SQL
             return await _context.Pastes
+                .AsNoTracking()
                 .Where(p => !p.IsPrivate && (p.ExpiresAt == null || p.ExpiresAt > now))
                 .OrderByDescending(p => p.CreatedAt)
-                .Select(p => MapToResponseDto(p))
+                .Select(p => new PasteResponseDto
+                {
+                    Code = p.Code,
+                    Content = p.Content,
+                    Language = p.Language,
+                    CreatedAt = p.CreatedAt,
+                    ExpiresAt = p.ExpiresAt,
+                    IsPrivate = p.IsPrivate,
+                    ViewCount = p.ViewCount
+                })
                 .ToListAsync();
         }
 
-        // 4. Logic Xóa Paste theo Code (MỞ RỘNG 2)
+        // 4. Logic Xóa Paste theo Code
         public async Task<bool> DeletePasteAsync(string code)
         {
             var paste = await _context.Pastes.FirstOrDefaultAsync(p => p.Code == code);
@@ -95,7 +107,7 @@ namespace PastebinSharer.Services
             return true;
         }
 
-        // Helper Map Entity sang Response DTO
+        // Helper Map Entity sang Response DTO trong Memory
         private static PasteResponseDto MapToResponseDto(Paste paste)
         {
             return new PasteResponseDto
