@@ -8,7 +8,6 @@ using PastebinSharer.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -23,7 +22,7 @@ var jwtSecret = builder.Configuration["Jwt:Secret"];
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.MapInboundClaims = false; 
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = false,
@@ -38,7 +37,6 @@ builder.Services.AddScoped<PasteService>();
 
 var app = builder.Build();
 
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -47,10 +45,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
-app.UseMiddleware<TokenBlacklistMiddleware>(); 
+app.UseMiddleware<TokenBlacklistMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
-
 
 //using (var scope = app.Services.CreateScope())
 //{
