@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PastebinSharer.Models.DTOs;
 using PastebinSharer.Services;
 
@@ -15,7 +17,7 @@ namespace PastebinSharer.Controllers
             _pasteService = pasteService;
         }
 
-        // POST /api/pastes - Tạo một Paste mới
+        // POST /api/pastes - Tạo một Paste mới (Tự động nhận diện OwnerId nếu đã đăng nhập)
         [HttpPost]
         public async Task<ActionResult<PasteResponseDto>> CreatePaste([FromBody] CreatePasteDto dto)
         {
@@ -24,13 +26,43 @@ namespace PastebinSharer.Controllers
                 return BadRequest(ModelState);
             }
 
-            var response = await _pasteService.CreatePasteAsync(dto);
+            int? userId = null;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("id")?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(ClaimTypes.Name)?.Value;
 
-            // Trả về HTTP 201 Created kèm Header Location dẫn đến API GET /api/pastes/{code}
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out int parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
+            var response = await _pasteService.CreatePasteAsync(dto, userId);
+
             return CreatedAtAction(nameof(GetPaste), new { code = response.Code }, response);
         }
 
-        // GET /api/pastes/{code} - Lấy thông tin Paste theo mã Code (Tự động tăng lượt xem)
+        // GET /api/pastes/my - Lấy danh sách Paste của người dùng đang đăng nhập
+        [HttpGet("my")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<PasteResponseDto>>> GetMyPastes()
+        {
+            // Đọc Claim từ tất cả các định dạng JWT token phổ biến
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                              ?? User.FindFirst("id")?.Value
+                              ?? User.FindFirst("sub")?.Value
+                              ?? User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Không xác thực được danh tính người dùng." });
+            }
+
+            var responses = await _pasteService.GetPastesByUserIdAsync(userId);
+            return Ok(responses);
+        }
+
+        // GET /api/pastes/{code} - Lấy thông tin Paste theo mã Code (Tự động tăng ViewCount)
         [HttpGet("{code}")]
         public async Task<ActionResult<PasteResponseDto>> GetPaste(string code)
         {
@@ -49,7 +81,7 @@ namespace PastebinSharer.Controllers
             return Ok(response);
         }
 
-        // GET /api/pastes - Lấy danh sách các Paste công khai (Chưa hết hạn)
+        // GET /api/pastes - Lấy danh sách các Paste công khai
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PasteResponseDto>>> GetPublicPastes()
         {

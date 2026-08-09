@@ -16,17 +16,19 @@ namespace PastebinSharer.Middleware
         {
             var authHeader = context.Request.Headers["Authorization"].ToString();
 
-            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
-                var token = authHeader.Replace("Bearer ", "");
+                var token = authHeader.Substring("Bearer ".Length).Trim();
 
+                // Chỉ check những token bị blacklist mà chưa hết hạn thời gian sống
                 var isBlacklisted = await dbContext.BlacklistedTokens
-                    .AnyAsync(t => t.Token == token);
+                    .AnyAsync(t => t.Token == token && t.ExpiresAt > DateTime.UtcNow);
 
                 if (isBlacklisted)
                 {
-                    context.Response.StatusCode = 401;
-                    await context.Response.WriteAsJsonAsync(new { error = "Token đã bị vô hiệu hóa (đã đăng xuất)" });
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsJsonAsync(new { message = "Token đã bị vô hiệu hóa (đã đăng xuất)" });
                     return;
                 }
             }

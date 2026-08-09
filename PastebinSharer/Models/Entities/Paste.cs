@@ -1,4 +1,6 @@
-﻿namespace PastebinSharer.Entities
+﻿using System;
+
+namespace PastebinSharer.Entities
 {
     public class Paste
     {
@@ -18,6 +20,7 @@
 
         public int ViewCount { get; set; } = 0;
 
-        public int? OwnerId { get; set; }
+        // 🟢 Sửa int? thành string? để Npgsql đọc kiểu text/varchar từ PostgreSQL không bị ném lỗi GetInt32
+        public string? OwnerId { get; set; }
     }
 }
