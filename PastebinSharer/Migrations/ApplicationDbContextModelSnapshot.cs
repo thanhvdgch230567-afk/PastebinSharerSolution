@@ -51,8 +51,8 @@ namespace PastebinSharer.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("OwnerId")
-                        .HasColumnType("integer");
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("text");
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("integer");

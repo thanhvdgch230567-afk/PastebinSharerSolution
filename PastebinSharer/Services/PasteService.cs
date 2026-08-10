@@ -42,7 +42,7 @@ namespace PastebinSharer.Services
                 ExpiresAt = expiresAt,
                 IsPrivate = dto.IsPrivate,
                 ViewCount = 0,
-                OwnerId = userId?.ToString() // Chuyển sang string lưu trữ
+                OwnerId = userId?.ToString() 
             };
 
             _context.Pastes.Add(paste);
