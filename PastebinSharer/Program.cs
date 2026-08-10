@@ -8,12 +8,16 @@ using PastebinSharer.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. THÊM DỊCH VỤ CORS
+// 1. CẤU HÌNH CORS CHO PHÉP CẢ LOCALHOST LẪN TRANG VERCEL
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://localhost:5173")
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "https://localhost:5173",
+                "https://pastebin-sharer-frontend.vercel.app" // Thêm link Vercel của bạn vào đây
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -55,10 +59,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
 app.UseHttpsRedirection();
 
-
+// Kích hoạt CORS (phải đặt trước UseAuthentication và UseAuthorization)
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
