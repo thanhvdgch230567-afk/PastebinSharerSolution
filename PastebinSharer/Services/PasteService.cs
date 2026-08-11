@@ -27,6 +27,7 @@ namespace PastebinSharer.Services
 
             DateTime? expiresAt = dto.Expiration?.ToLower() switch
             {
+                "1m" => DateTime.UtcNow.AddMinutes(1),
                 "1phut" => DateTime.UtcNow.AddMinutes(1),
                 "1h" => DateTime.UtcNow.AddHours(1),
                 "1d" => DateTime.UtcNow.AddDays(1),
@@ -44,7 +45,7 @@ namespace PastebinSharer.Services
                 ExpiresAt = expiresAt,
                 IsPrivate = dto.IsPrivate,
                 ViewCount = 0,
-                OwnerId = userId?.ToString() 
+                OwnerId = userId?.ToString()
             };
 
             _context.Pastes.Add(paste);
@@ -53,25 +54,27 @@ namespace PastebinSharer.Services
             return MapToResponseDto(paste);
         }
 
-        // 2. Logic Lấy thông tin Paste theo Code
+        // 2. Logic Lấy thông tin Paste theo Code (Ấn vào xem: Quá hạn sẽ hiện thông báo)
         public async Task<PasteResponseDto?> GetPasteByCodeAsync(string code)
         {
             if (string.IsNullOrWhiteSpace(code)) return null;
 
             var cleanCode = code.Trim();
-
-            // Tìm paste theo code
             var paste = await _context.Pastes.FirstOrDefaultAsync(p => p.Code == cleanCode);
 
             if (paste == null) return null;
 
-            // Kiểm tra hết hạn
+            var responseDto = MapToResponseDto(paste);
+
+            // Kiểm tra nếu đã hết 1 phút (hoặc quá hạn)
             if (paste.ExpiresAt.HasValue && paste.ExpiresAt.Value < DateTime.UtcNow)
             {
-                return null;
+                // Vẫn cho xem bài viết nhưng đổi nội dung thành thông báo hết hạn
+                responseDto.Content = "[Thông báo]: Paste này đã hết hạn sau 1 phút!";
+                return responseDto;
             }
 
-            // Tăng ViewCount an toàn
+            // Nếu chưa hết hạn thì tăng ViewCount bình thường
             try
             {
                 paste.ViewCount++;
@@ -82,10 +85,10 @@ namespace PastebinSharer.Services
                 Console.WriteLine($"[Warning] Lỗi tăng ViewCount: {ex.Message}");
             }
 
-            return MapToResponseDto(paste);
+            return responseDto;
         }
 
-        // 3. Logic Lấy danh sách các Paste công khai
+        // 3. Logic Lấy danh sách các Paste công khai (Giữ nguyên tất cả để vẫn hiện ở Explore)
         public async Task<IEnumerable<PasteResponseDto>> GetPublicPastesAsync()
         {
             var pastes = await _context.Pastes
@@ -94,10 +97,8 @@ namespace PastebinSharer.Services
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            var now = DateTime.UtcNow;
-            return pastes
-                .Where(p => p.ExpiresAt == null || p.ExpiresAt > now)
-                .Select(p => MapToResponseDto(p));
+            // Không lọc bỏ ExpiresAt nữa, bài nào cũng hiện ở Explore
+            return pastes.Select(p => MapToResponseDto(p));
         }
 
         // 4. Logic Lấy danh sách Paste theo OwnerId
@@ -111,10 +112,7 @@ namespace PastebinSharer.Services
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
 
-            var now = DateTime.UtcNow;
-            return pastes
-                .Where(p => p.ExpiresAt == null || p.ExpiresAt > now)
-                .Select(p => MapToResponseDto(p));
+            return pastes.Select(p => MapToResponseDto(p));
         }
 
         // 5. Logic Xóa Paste theo Code
