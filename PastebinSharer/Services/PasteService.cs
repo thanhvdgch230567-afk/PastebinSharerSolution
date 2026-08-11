@@ -68,8 +68,6 @@ namespace PastebinSharer.Services
             // Kiểm tra hết hạn
             if (paste.ExpiresAt.HasValue && paste.ExpiresAt.Value < DateTime.UtcNow)
             {
-                _context.Pastes.Remove(paste);
-                await _context.SaveChangesAsync();
                 return null;
             }
 
