@@ -16,7 +16,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(
                 "http://localhost:5173",
                 "https://localhost:5173",
-                "https://pastebin-sharer-frontend.vercel.app" // Thêm link Vercel của bạn vào đây
+                "https://pastebin-sharer-frontend.vercel.app" 
               )
               .AllowAnyHeader()
               .AllowAnyMethod()

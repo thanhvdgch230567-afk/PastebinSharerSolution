@@ -27,9 +27,11 @@ namespace PastebinSharer.Services
 
             DateTime? expiresAt = dto.Expiration?.ToLower() switch
             {
+                "1phut" => DateTime.UtcNow.AddMinutes(1),
                 "1h" => DateTime.UtcNow.AddHours(1),
                 "1d" => DateTime.UtcNow.AddDays(1),
                 "1w" => DateTime.UtcNow.AddDays(7),
+                "1month" => DateTime.UtcNow.AddMonths(1),
                 _ => null
             };
 
@@ -66,6 +68,8 @@ namespace PastebinSharer.Services
             // Kiểm tra hết hạn
             if (paste.ExpiresAt.HasValue && paste.ExpiresAt.Value < DateTime.UtcNow)
             {
+                _context.Pastes.Remove(paste);
+                await _context.SaveChangesAsync();
                 return null;
             }
 

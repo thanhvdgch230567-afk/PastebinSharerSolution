@@ -47,7 +47,7 @@ namespace PastebinSharer.Controllers
         [Authorize]
         public async Task<ActionResult<IEnumerable<PasteResponseDto>>> GetMyPastes()
         {
-            // Đọc Claim từ tất cả các định dạng JWT token phổ biến
+   
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                               ?? User.FindFirst("id")?.Value
                               ?? User.FindFirst("sub")?.Value
